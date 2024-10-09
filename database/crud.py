@@ -60,11 +60,11 @@ def check_user(user_id: int):
 def get_free_nick():
     with Session(bind=engine) as session:
         #stmt = select(Nick).where(Nick.owner_id.isnot(None)).limit(1)
-        stmt = select(Nick).where(Nick.owner_id.is_(None)).limit(1)
+        stmt = select(Nick).where(Nick.owner_id.is_(None)).order_by(func.random()).limit(1)
         #print(stmt)
         result = session.execute(stmt).scalars().first()
         if result is None:
-            print("нет ников")
+            #print("нет ников")
             return
         return result
 

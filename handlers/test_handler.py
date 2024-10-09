@@ -1,7 +1,6 @@
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
-from data.settings import BUSY_NICKNAMES,FREE_NICKNAMES
 from database import crud
 import datetime
 
@@ -27,23 +26,24 @@ async def select_username_cmd(message:Message):
         await message.reply(f"Ты уже зарегестрирован, твой id:{user_id}")
         return
     free_nick = crud.get_free_nick()
-    if free_nick == None:
+    if free_nick is None:
         await message.reply(f"Ники кончились, попробуй позже")
         return
-    crud.add_user(user_id,free_nick,False,datetime.datetime.now())
+    crud.add_user(user_id,free_nick.nick,False,datetime.datetime.now())
+    await message.reply("Вы зарегестрировались")
 
 
 @router.message()
 async def broadcast_message(message: Message, bot: Bot):
-    if message.from_user.id not in BUSY_NICKNAMES:
+    if not crud.check_user(message.from_user.id):
         await message.reply("Вы не зарегестрированы")
         return
-    users = [5959606180, 425860627, 1217771190]
-    for user_id in users:
-        if user_id == message.from_user.id:
+    users = crud.get_all_users()
+    for user in users:
+        if user.id == message.from_user.id:
             continue
-        data_for_message = f"{BUSY_NICKNAMES[message.from_user.id]}"+': '+message.text
-        await bot.send_message(user_id, data_for_message)
+        data_for_message = f"{user.nickname}"+': '+message.text
+        await bot.send_message(user.id, data_for_message)
     print(message.from_user.id)
 
 
