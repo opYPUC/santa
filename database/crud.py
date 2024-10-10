@@ -80,7 +80,16 @@ def set_owner_id(own_id:int, nick_id:int):
         session.execute(stmt)
         session.commit()
 
+def check_adm(user_id):
+    with Session(bind=engine) as session:
+        stmt = select(User.is_admin).where(User.id==user_id)
+        return session.execute(stmt).scalar()
 
+def add_nick(new_nick:str):
+    with Session(bind=engine) as session:
+        new_nick = Nick(nick=new_nick)
+        session.add(new_nick)
+        session.commit()
 
 
 def add_standart_data_nicks():
