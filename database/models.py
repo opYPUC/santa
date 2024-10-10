@@ -28,7 +28,7 @@ class Nick(Base):
     __tablename__ = "nickname"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nick: Mapped[str]
-    owner_id: Mapped[int] = mapped_column(Boolean,nullable=True)
+    owner_id: Mapped[int] = mapped_column(Integer,nullable=True)
 
     def __repr__(self):
         return (f"UserObject(id={self.id};"

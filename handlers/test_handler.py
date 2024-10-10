@@ -30,6 +30,7 @@ async def select_username_cmd(message:Message):
         await message.reply(f"Ники кончились, попробуй позже")
         return
     crud.add_user(user_id,free_nick.nick,False,datetime.datetime.now())
+    crud.set_owner_id(user_id,free_nick.id)
     await message.reply("Вы зарегестрировались")
 
 

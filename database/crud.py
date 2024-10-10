@@ -1,6 +1,11 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text, func, insert
+from sqlalchemy import update
+#from sqlalchemy.orm.sync import update
+
+
+
 from .models import User, Nick
 from .db import engine
 
@@ -36,6 +41,7 @@ def get_all_users() -> list[User]:
 def add_user(id: int, nickname: str, is_admin: bool,registry_date:datetime):
     with Session(bind=engine) as session:
         new_user = User(id=id, is_admin=is_admin, nickname=nickname,registry_date=registry_date)
+        
         session.add(new_user)
         session.commit()
         return f"Пользователь{nickname} добавлен"
@@ -67,6 +73,14 @@ def get_free_nick():
             #print("нет ников")
             return
         return result
+
+def set_owner_id(own_id:int, nick_id:int):
+    with Session(bind=engine) as session:
+        stmt = update(Nick).where(Nick.id == nick_id).values(owner_id = own_id)
+        session.execute(stmt)
+        session.commit()
+
+
 
 
 def add_standart_data_nicks():
