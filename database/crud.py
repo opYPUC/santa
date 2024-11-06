@@ -1,12 +1,11 @@
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,lazyload,joinedload
 from sqlalchemy import select, text, func, insert
 from sqlalchemy import update
-#from sqlalchemy.orm.sync import update
+# from sqlalchemy.orm.sync import update
 
 
-
-from .models import User, Nick
+from .models import User, Nick,Room
 from .db import engine
 
 
@@ -30,23 +29,20 @@ from .db import engine
 def get_all_users() -> list[User]:
     with Session(bind=engine) as session:
         stmt = select(User).limit(5)  # statement
-        result = session.execute(stmt).scalars().all()
-        # r_result = []
-        # for user_tuple in result:
-        #     r_result.append(user_tuple[0])
-        # return list(map(lambda x: x[0], result))
+        result = session.execute(stmt).unique().scalars().all()
         return result
 
 
-def add_user(id: int, nickname: str, is_admin: bool,registry_date:datetime):
+def add_user(id: int, is_admin: bool, registry_date: datetime):
     with Session(bind=engine) as session:
-        new_user = User(id=id, is_admin=is_admin, nickname=nickname,registry_date=registry_date)
-        
+        new_user = User(id=id, is_admin=is_admin, registry_date=registry_date)
+
         session.add(new_user)
         session.commit()
-        return f"Пользователь{nickname} добавлен"
+        return f"Пользователь c id {id} добавлен"
 
-#def ar():
+
+# def ar():
 #    random_nickname = session.query(Nickname).filter(Nickname.owner_id == None).order_by(func.random()).first()
 
 def add_nick(nick: str, owner_id: bool):
@@ -65,30 +61,48 @@ def check_user(user_id: int):
 
 def get_free_nick():
     with Session(bind=engine) as session:
-        #stmt = select(Nick).where(Nick.owner_id.isnot(None)).limit(1)
         stmt = select(Nick).where(Nick.owner_id.is_(None)).order_by(func.random()).limit(1)
-        #print(stmt)
         result = session.execute(stmt).scalars().first()
         if result is None:
-            #print("нет ников")
+            # print("нет ников")
             return
         return result
 
-def set_owner_id(own_id:int, nick_id:int):
+
+def set_owner_id(own_id: int, nick_id: int):
     with Session(bind=engine) as session:
-        stmt = update(Nick).where(Nick.id == nick_id).values(owner_id = own_id)
+        stmt = update(Nick).where(Nick.id == nick_id).values(owner_id=own_id)
         session.execute(stmt)
         session.commit()
 
+def check_owner_id_room(own_id:int):
+    with Session(bind=engine) as session:
+        stmt = select(Room.id).where(Room.owner_id == own_id)
+        result =  session.execute(stmt).scalar()
+        return result is not None
+
+
 def check_adm(user_id):
     with Session(bind=engine) as session:
-        stmt = select(User.is_admin).where(User.id==user_id)
+        stmt = select(User.is_admin).where(User.id == user_id)
         return session.execute(stmt).scalar()
 
-def add_nick(new_nick:str):
+
+def add_nick(new_nick: str):
     with Session(bind=engine) as session:
         new_nick = Nick(nick=new_nick)
         session.add(new_nick)
+        session.commit()
+
+
+def create_room(name: str,
+                password: str,
+                owner_id: int):
+    with Session(bind=engine) as session:
+        curr_room = Room(owner_id=owner_id,
+                         name=name,
+                         password=password)
+        session.add(curr_room)
         session.commit()
 
 
@@ -99,6 +113,7 @@ def add_standart_data_nicks():
             new_nick = Nick(nick=nickname)
             session.add(new_nick)
         session.commit()
+
 
 def add_standart_data_nicks_sqla2():
     with Session(bind=engine) as session:
@@ -114,6 +129,7 @@ def add_standart_data_nicks_sqla2():
         print(stmt)
         session.execute(stmt)
         session.commit()
+
 
 # SQLA1
 # def delete_user(user_id:int):
