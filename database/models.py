@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func
-from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, Text, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
 from datetime import datetime
 
 
@@ -15,12 +15,17 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "user"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
-    nickname: Mapped[str]
+    nickname_id: Mapped[int] = mapped_column(Integer,ForeignKey("nickname.id"),nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    room_id: Mapped[int] = mapped_column(Integer,nullable=True)
+
+    #relationships
+    nickname: Mapped["Nick"] = relationship(lazy="joined",back_populates="users")
+
 
     def __repr__(self):
         return (f"UserObject(id={self.id};"
-                f"nickname={self.nickname};"
+                f"nickname_id={self.nickname_id};"
                 f"is_admin={self.is_admin}")
 
 
@@ -28,9 +33,17 @@ class Nick(Base):
     __tablename__ = "nickname"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nick: Mapped[str]
-    owner_id: Mapped[int] = mapped_column(Integer,nullable=True)
+
+    #relationships
+    users: Mapped[list["User"]] = relationship(lazy="select",back_populates="nickname")
 
     def __repr__(self):
         return (f"UserObject(id={self.id};"
-                f"nickname={self.nick};"
-                f"owner={self.owner_id})")
+                f"nickname={self.nick};")
+
+class Room(Base):
+    __tablename__ = "room"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True,autoincrement=True)
+    owner_id:Mapped[int]
+    name: Mapped[str]
+    password: Mapped[str]
