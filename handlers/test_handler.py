@@ -1,6 +1,8 @@
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
+from sqlalchemy.testing.plugin.plugin_base import logging
+import logging
 from database import crud
 import datetime
 
@@ -22,8 +24,10 @@ router = Router()
 #    nickname = FREE_NICKNAMES.pop()
 #    BUSY_NICKNAMES[user_id] = nickname
 
+
 @router.message(Command("addnick"))
 async def add_nick_cmd(message: Message, command: CommandObject):
+    logging.debug("add_nick_cmd запущен")
     user_id = message.from_user.id
     if not crud.check_adm(user_id):
         await message.reply("У тебя нет прав")
@@ -40,10 +44,9 @@ async def add_nick_cmd(message: Message, command: CommandObject):
     await message.reply("Ник добавлен")
 
 
-
-
 @router.message(Command("registry"))
 async def select_username_cmd(message: Message):
+    logging.debug("select_username_cmd запущен")
     user_id = message.from_user.id
     if (crud.check_user(user_id)):
         await message.reply(f"Ты уже зарегестрирован, твой id:{user_id}")
@@ -59,6 +62,7 @@ async def select_username_cmd(message: Message):
 
 @router.message()
 async def broadcast_message(message: Message, bot: Bot):
+    logging.debug("broadcast запущен")
     if not crud.check_user(message.from_user.id):
         await message.reply("Вы не зарегестрированы")
         return

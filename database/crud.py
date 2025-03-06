@@ -1,7 +1,8 @@
 from datetime import datetime
 from sqlalchemy.orm import Session,lazyload,joinedload
-from sqlalchemy import select, text, func, insert
+from sqlalchemy import select, text, func, insert, and_
 from sqlalchemy import update
+import  hashlib
 # from sqlalchemy.orm.sync import update
 
 
@@ -25,6 +26,14 @@ from .db import engine
 #             r_result.append(user_tuple[0])
 #         return result.all()
 
+def is_user_registered(user_id: int) -> bool:
+    with Session(bind=engine) as session:
+        stmt = select(User).where(User.id == user_id)
+        print("запрос по регистрации")
+        print(stmt)
+        print("запрос по регистрации")
+        result = session.execute(stmt).scalars().first()
+        return result is not None
 
 def get_all_users() -> list[User]:
     with Session(bind=engine) as session:
@@ -75,10 +84,31 @@ def set_owner_id(own_id: int, nick_id: int):
         session.execute(stmt)
         session.commit()
 
+def set_room_id(user_id: int, room_id: int):
+    with Session(bind=engine) as session:
+        stmt = update(User).where(User.id == user_id).values(room_id=room_id)
+        session.execute(stmt)
+        session.commit()
+
 def check_owner_id_room(own_id:int):
     with Session(bind=engine) as session:
         stmt = select(Room.id).where(Room.owner_id == own_id)
         result =  session.execute(stmt).scalar()
+        return result is not None
+
+def check_user_id_room(user_id:int):
+    with Session(bind=engine) as session:
+        stmt = select(User.room_id).where(User.id == user_id)
+        result =  session.execute(stmt).scalar()
+        return result is not None
+
+def check_room_id(user_id:int):
+    with Session(bind=engine) as session:
+        stmt = select(User.room_id).where(User.id == user_id)
+        result =  session.execute(stmt).scalar()
+        print("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+        print(result)
+        print("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
         return result is not None
 
 
@@ -99,12 +129,45 @@ def create_room(name: str,
                 password: str,
                 owner_id: int):
     with Session(bind=engine) as session:
+        password = hashlib.sha256(password.encode()).hexdigest()
+        print(password)
         curr_room = Room(owner_id=owner_id,
                          name=name,
                          password=password)
         session.add(curr_room)
         session.commit()
+        set_room_id(owner_id, curr_room.id)
+        print(curr_room.id,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
+
+def check_valid_room(room_name: str,
+                  password:str):
+    with Session(bind=engine) as session:
+        stmt = select(Room.password==hashlib.sha256(password.encode()).hexdigest()).where(Room.name==room_name)
+        result = session.execute(stmt).scalars().first()
+        if not result: #проверка на название
+            return False
+        return True
+
+def check_busy_name_room(room_name:str):
+    with Session(bind=engine) as session:
+        stmt = select(Room.name).where(Room.name==room_name)
+        result = session.execute(stmt).scalars().first()
+        if not result: #проверка на название
+            return False
+        return True
+
+
+def join_room(user_id:int,room_name):
+    with Session(bind=engine) as session:
+        stmt = select(Room).where(Room.name==room_name)
+        room = session.execute(stmt).scalars().first()
+        room_id = room.id
+        stmt = select(User).where(User.id==user_id)
+        user = session.execute(stmt).scalars().first()
+        user.room_id = room_id
+        session.commit()
+        set_room_id(user_id, room_id)
 
 def add_standart_data_nicks():
     with Session(bind=engine) as session:
@@ -144,6 +207,33 @@ def delete_user(user_id: int):
         user = session.get(User, user_id)
         session.delete(user)
         session.commit()
+
+def delete_room_from_user(user_id:int):
+    with Session(bind=engine) as session:
+        #stmt = select(User.room_id).where(User.id==user_id)
+        #user = session.execute(stmt).scalars().first()
+        #user.room_id = None
+        #session.commit()
+        stmt = update(User).values(room_id=None).where(User.id==user_id)
+        print(stmt)
+        session.execute(stmt)
+        session.commit()
+
+def get_free_nickname_for_room(room_id:int) -> list[str]:
+    with Session(bind=engine) as session:
+        stmt = select(Nick.nick).join(User,and_(Nick.id == User.nickname_id, User.room_id == room_id),isouter=True).where(User.id.is_(None))
+        print(stmt)
+        nicknames = session.execute(stmt).scalars().fetchall()
+        return nicknames
+        #Авторское решение
+        #nicknames_stmt = select(Nick.nick)
+        #nicknames = session.execute(nicknames_stmt).scalars().fetchall()
+        #print(nicknames)
+        #busy_nicknames_stmt = select(Nick.nick).join(User,Nick.id==User.nickname_id).where(User.room_id == room_id)
+        #busy_nicknames = session.execute(busy_nicknames_stmt).scalars().fetchall()
+        #print(busy_nicknames)
+        #nick_set = set(nicknames).difference(busy_nicknames)
+        #print(nick_set)
 
 
 def test_func_sql():
